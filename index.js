@@ -6,7 +6,7 @@ var cors = require("cors")
 const { Configuration, OpenAIApi } = require("openai")
 
 const configuration = new Configuration({
-  apiKey: "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",
+  apiKey: "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",
 })
 const openai = new OpenAIApi(configuration)
 
@@ -26,16 +26,17 @@ const knex = require("knex")({
   },
 })
 
-function generatePrompt(word, lang) {
+function generatePrompt(word) {
   return `
-Provide the dictionary definition of the word "${word}".
+You are a multilingual dictionary. Provide strictly verified information only.
+Convert this word "${word}" to initial form. Then, provide the following information of this converted word:
 
-6) initial_form = Provide the initial form of this word in ${lang} and it must be capitalized.
-1) forms = Provide all forms of this word in ${lang} and all forms must be capitalized.
-2) synonyms = Provide three synonyms of this word in ${lang}.
-4) pronunciation = Provide phonetic transcription of this word in ${lang}.
-3) usage_examples = (example = Provide three examples with this word in ${lang}) and (part_of_speech = Provide the part of speech of this word in each example in ${lang}). The following object must be {example: example, part_of_speech: part_of_speech}.
-5) common_phrases = (phrase = Provide three common phrases with this word in ${lang}) and (meaning = The meaning of this phrase in ${lang}). The following object must be {phrase: phrase, meaning: meaning}.
+1) initial_form = Convert this word to the initial form and it must be capitalized.
+2) forms = Provide all forms of this word and all forms must be capitalized.
+3) synonyms = Provide three synonyms of this converted word.
+4) pronunciation = Convert this word "${word}" to initial form. Then, provide phonetic transcription of this converted word.
+5) usage_examples = (example = Provide three examples with this converted word) and (part_of_speech = Provide the part of speech of this converted word in each example). The following object must be {"example": example, "part_of_speech": part_of_speech}.
+6) common_phrases = (phrase = Provide three common phrases with this converted word) and (meaning = The meaning of this phrase). The following object must be {"phrase": phrase, "meaning": meaning}.
 
 If the word does not exist in the dictionary then reply only "null" else return only the following object in correct JSON format:
 {
@@ -114,11 +115,11 @@ async function getCard(word) {
   }
 }
 
-async function getWord(word, lang) {
+async function getWord(word) {
   try {
     const res = await openai.createCompletion({
       model: "text-davinci-003",
-      prompt: generatePrompt(word, lang),
+      prompt: generatePrompt(word),
       temperature: 1,
       max_tokens: 2048,
     })
@@ -133,7 +134,7 @@ async function getWord(word, lang) {
 
 async function createCard(data) {
   try {
-    const lol = await knex("forms")
+    await knex("forms")
       .returning("*")
       .insert(
         data.forms.map((form_name) => ({
@@ -166,7 +167,7 @@ async function createCard(data) {
 }
 
 app.post("/api/cards/create", async (req, res) => {
-  const { new_word, lang } = req.body
+  const { new_word } = req.body
 
   await createTable()
 
@@ -174,7 +175,7 @@ app.post("/api/cards/create", async (req, res) => {
 
   if (card) return res.status(200).send(card)
 
-  const word = await getWord(new_word, lang)
+  const word = await getWord(new_word)
 
   if (!word) return res.status(404).send("The word does not exist!")
 
