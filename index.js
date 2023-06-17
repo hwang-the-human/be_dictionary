@@ -6,7 +6,7 @@ var cors = require("cors")
 const { Configuration, OpenAIApi } = require("openai")
 
 const configuration = new Configuration({
-  apiKey: "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",
+  apiKey: "",
 })
 const openai = new OpenAIApi(configuration)
 
@@ -31,7 +31,7 @@ function generatePrompt(word) {
 You are a multilingual dictionary. Provide strictly verified information only.
 Convert this word "${word}" to initial form. Then, provide the following information of this converted word:
 
-1) initial_form = Convert this word to the initial form and it must be capitalized.
+1) initial_form = Convert this word "${word}" to the initial form and the first letter must be capitalized.
 2) forms = Provide all forms of this word and all forms must be capitalized.
 3) synonyms = Provide three synonyms of this converted word.
 4) pronunciation = Convert this word "${word}" to initial form. Then, provide phonetic transcription of this converted word.
