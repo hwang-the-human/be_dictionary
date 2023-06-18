@@ -15,7 +15,7 @@ const openai = new OpenAIApi(configuration)
 app.listen(port, () => console.log(`Listening on port ${port}...`))
 
 app.use(express.json())
-app.use(cors())
+// app.use(cors())
 
 const db = require("knex")({
   client: process.env.DB_CLIENT,
@@ -32,7 +32,7 @@ const db = require("knex")({
       acquireTimeoutMillis: 300000,
       createTimeoutMillis: 300000,
       destroyTimeoutMillis: 300000,
-      idleTimeoutMillis: 30000,
+      idleTimeoutMillis: 600000,
       reapIntervalMillis: 1000,
       createRetryIntervalMillis: 2000,
     },
