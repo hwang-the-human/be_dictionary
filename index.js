@@ -1,12 +1,13 @@
+require("dotenv").config()
 const express = require("express")
 const app = express()
-const port = 8000
+const port = process.env.PORT || 8000
 var cors = require("cors")
 
 const { Configuration, OpenAIApi } = require("openai")
 
 const configuration = new Configuration({
-  apiKey: "",
+  apiKey: process.env.AI_KEY,
 })
 const openai = new OpenAIApi(configuration)
 
@@ -16,13 +17,13 @@ app.use(express.json())
 app.use(cors())
 
 const knex = require("knex")({
-  client: "pg",
+  client: process.env.DB_CLIENT,
   connection: {
-    host: "localhost",
-    port: 8002,
-    user: "postgres",
-    password: "n23105972Nn",
-    database: "demoDB",
+    host: process.env.DB_HOST,
+    port: process.env.DB_PORT,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASS,
+    database: process.env.DB_DATABASE,
   },
 })
 
@@ -47,6 +48,40 @@ If the word does not exist in the dictionary then reply only "null" else return 
 "usage_examples": usage_examples[],
 "common_phrases": common_phrases[]
 }`
+}
+
+async function addMusicToDB() {
+  await knex.schema.hasTable("tracks").then(async (exists) => {
+    if (!exists) {
+      await knex.schema.createTable("tracks", (table) => {
+        table.increments("id")
+        table.string("duration")
+        table.specificType("tags", "text ARRAY")
+        table.string("createdAt")
+        table.string("difficult")
+        table.string("podcastName")
+        table.string("image")
+        table.string("title")
+      })
+
+      const data = require("./Track.json")
+      data.forEach(async (track) => {
+        try {
+          await knex("tracks").insert({
+            duration: track.duration,
+            tags: track.tags,
+            createdAt: track.createdAt,
+            difficult: track.difficult,
+            podcastName: track.podcastName,
+            image: track.image,
+            title: track.title,
+          })
+        } catch (error) {
+          console.log(error)
+        }
+      })
+    }
+  })
 }
 
 async function createTable() {
@@ -189,6 +224,21 @@ app.get("/api/cards/getAll", async (req, res) => {
     const card = await knex("cards").select("initial_form")
 
     return res.send(card)
+  } catch (err) {
+    console.log("ERROR", err)
+  }
+})
+
+app.get("/api/tracks/getAll", async (req, res) => {
+  addMusicToDB()
+  const { page, page_count } = req.query
+  try {
+    const count = await knex("tracks").count()
+    const tracks = await knex("tracks")
+      .select("*")
+      .offset(page * page_count)
+      .limit(page_count)
+    return res.send({ data: tracks, count: count[0].count })
   } catch (err) {
     console.log("ERROR", err)
   }
