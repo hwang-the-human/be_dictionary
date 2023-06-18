@@ -2,6 +2,7 @@ require("dotenv").config()
 const express = require("express")
 const app = express()
 const port = process.env.PORT || 8000
+
 var cors = require("cors")
 
 const { Configuration, OpenAIApi } = require("openai")
@@ -242,4 +243,8 @@ app.get("/api/tracks/getAll", async (req, res) => {
   } catch (err) {
     console.log("ERROR", err)
   }
+})
+
+app.get("/", async (req, res) => {
+  es.send("SUCCESS")
 })
