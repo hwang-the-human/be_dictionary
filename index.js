@@ -17,7 +17,7 @@ app.listen(port, () => console.log(`Listening on port ${port}...`))
 app.use(express.json())
 app.use(cors())
 
-const knex = require("knex")({
+const db = require("knex")({
   client: process.env.DB_CLIENT,
   connection: {
     host: process.env.DB_HOST,
@@ -27,6 +27,15 @@ const knex = require("knex")({
     database: process.env.DB_DATABASE,
   },
 })
+
+db.raw("SELECT 1")
+  .then(() => {
+    console.log("PostgreSQL connected.")
+  })
+  .catch((e) => {
+    console.log("PostgreSQL not connected.")
+    console.error(e)
+  })
 
 function generatePrompt(word) {
   return `
@@ -52,9 +61,9 @@ If the word does not exist in the dictionary then reply only "null" else return 
 }
 
 async function addMusicToDB() {
-  await knex.schema.hasTable("tracks").then(async (exists) => {
+  await db.schema.hasTable("tracks").then(async (exists) => {
     if (!exists) {
-      await knex.schema.createTable("tracks", (table) => {
+      await db.schema.createTable("tracks", (table) => {
         table.increments("id")
         table.string("duration")
         table.specificType("tags", "text ARRAY")
@@ -68,7 +77,7 @@ async function addMusicToDB() {
       const data = require("./Track.json")
       data.forEach(async (track) => {
         try {
-          await knex("tracks").insert({
+          await db("tracks").insert({
             duration: track.duration,
             tags: track.tags,
             createdAt: track.createdAt,
@@ -86,9 +95,9 @@ async function addMusicToDB() {
 }
 
 async function createTable() {
-  await knex.schema.hasTable("cards").then(async (exists) => {
+  await db.schema.hasTable("cards").then(async (exists) => {
     if (!exists) {
-      await knex.schema
+      await db.schema
         .createTable("cards", (table) => {
           table.increments("id")
           table.string("initial_form")
@@ -118,24 +127,24 @@ async function createTable() {
 
 async function getCard(word) {
   try {
-    const initial_form = await knex("forms")
+    const initial_form = await db("forms")
       .andWhere("form_name", "=", word)
       .orWhere("initial_form", "=", word)
 
     if (!initial_form) return
 
-    const card = await knex("cards").where(
+    const card = await db("cards").where(
       "initial_form",
       "=",
       initial_form[0]?.initial_form
     )
 
-    const usage_examples = await knex("usage_examples").whereIn(
+    const usage_examples = await db("usage_examples").whereIn(
       "usage_example_id",
       card[0]?.usage_examples
     )
 
-    const common_phrases = await knex("common_phrases").whereIn(
+    const common_phrases = await db("common_phrases").whereIn(
       "common_phrase_id",
       card[0]?.usage_examples
     )
@@ -170,7 +179,7 @@ async function getWord(word) {
 
 async function createCard(data) {
   try {
-    await knex("forms")
+    await db("forms")
       .returning("*")
       .insert(
         data.forms.map((form_name) => ({
@@ -178,15 +187,15 @@ async function createCard(data) {
           form_name: form_name,
         }))
       )
-    const usage_examples = await knex("usage_examples")
+    const usage_examples = await db("usage_examples")
       .returning("usage_example_id")
       .insert(data.usage_examples)
 
-    const common_phrases = await knex("common_phrases")
+    const common_phrases = await db("common_phrases")
       .returning("common_phrase_id")
       .insert(data.common_phrases)
 
-    const card = await knex("cards")
+    const card = await db("cards")
       .returning("*")
       .insert({
         initial_form: data.initial_form,
@@ -222,7 +231,7 @@ app.post("/api/cards/create", async (req, res) => {
 
 app.get("/api/cards/getAll", async (req, res) => {
   try {
-    const card = await knex("cards").select("initial_form")
+    const card = await db("cards").select("initial_form")
 
     return res.send(card)
   } catch (err) {
@@ -231,11 +240,11 @@ app.get("/api/cards/getAll", async (req, res) => {
 })
 
 app.get("/api/tracks/getAll", async (req, res) => {
-  addMusicToDB()
+  await addMusicToDB()
   const { page, page_count } = req.query
   try {
-    const count = await knex("tracks").count()
-    const tracks = await knex("tracks")
+    const count = await db("tracks").count()
+    const tracks = await db("tracks")
       .select("*")
       .offset(page * page_count)
       .limit(page_count)
