@@ -246,5 +246,5 @@ app.get("/api/tracks/getAll", async (req, res) => {
 })
 
 app.get("/", async (req, res) => {
-  es.send("SUCCESS")
+  res.send("SUCCESS")
 })
