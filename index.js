@@ -26,7 +26,7 @@ const db = require("knex")({
     password: process.env.DB_PASS,
     database: process.env.DB_DATABASE,
     extra: {
-      ssl: true,
+      ssl: false,
     },
   },
 })
